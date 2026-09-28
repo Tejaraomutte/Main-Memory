@@ -11,7 +11,8 @@ import {
   Cpu, 
   Zap, 
   HelpCircle,
-  Activity
+  Activity,
+  ShieldCheck
 } from 'lucide-react';
 import { MEMORY_COMPONENTS, GLOSSARY_TERMS } from '../data/memoryData';
 
