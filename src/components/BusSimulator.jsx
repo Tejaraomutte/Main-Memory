@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Play, 
   RotateCcw, 
   ArrowRight, 
-  ArrowLeft, 
   Cpu, 
-  Layers, 
-  CheckCircle2, 
-  Clock, 
   Activity, 
   HelpCircle,
-  Zap
+  Zap,
+  Clock,
+  Sparkles,
+  Calculator,
+  Sliders
 } from 'lucide-react';
+import ModuleBottomNav from './ModuleBottomNav';
 
 const INITIAL_RAM_DATA = {
   '0x00': '0x1A',
@@ -24,13 +25,12 @@ const INITIAL_RAM_DATA = {
   '0x07': '0x42'
 };
 
-export default function BusSimulator({ powerOn }) {
+export default function BusSimulator({ onNavigateTab }) {
   const [ramData, setRamData] = useState(INITIAL_RAM_DATA);
   const [operation, setOperation] = useState('READ'); // 'READ' or 'WRITE'
   const [selectedAddress, setSelectedAddress] = useState('0x07');
   const [dataToWrite, setDataToWrite] = useState('0xAA');
   const [currentStep, setCurrentStep] = useState(0); // 0: Idle, 1: Address, 2: Control, 3: RAM Access, 4: Data Bus Complete
-  const [isRunning, setIsRunning] = useState(false);
   const [cycleLog, setCycleLog] = useState([]);
   const [cpuRegisters, setCpuRegisters] = useState({
     MAR: '0x07',
@@ -38,21 +38,11 @@ export default function BusSimulator({ powerOn }) {
     PC: '0x0040'
   });
 
-  // Handle Power loss wiping volatile RAM
-  useEffect(() => {
-    if (!powerOn) {
-      const wiped = {};
-      Object.keys(ramData).forEach(k => { wiped[k] = '0x00'; });
-      setRamData(wiped);
-      setCpuRegisters({ MAR: '0x00', MDR: '0x00', PC: '0x0000' });
-      setCurrentStep(0);
-      setCycleLog([{ step: 0, text: '⚠️ System power cut: All volatile DRAM cells discharged to 0x00.' }]);
-    }
-  }, [powerOn]);
+  // Address Bus Width Calculator State
+  const [addressLines, setAddressLines] = useState(32);
 
   const resetSimulation = () => {
     setCurrentStep(0);
-    setIsRunning(false);
     setCycleLog([]);
   };
 
@@ -66,7 +56,7 @@ export default function BusSimulator({ powerOn }) {
           step: 1,
           bus: 'Address Bus',
           color: '#0284c7',
-          text: `CPU loads address ${selectedAddress} into MAR and asserts it on the Address Bus.`
+          text: `CPU loads target address ${selectedAddress} into Memory Address Register (MAR) and drives it onto the Address Bus.`
         }
       ]);
     } else if (stepNumber === 2) {
@@ -76,7 +66,7 @@ export default function BusSimulator({ powerOn }) {
           step: 2,
           bus: 'Control Bus',
           color: '#d97706',
-          text: `Control line asserts ${operation === 'READ' ? 'MEM_READ = HIGH (1)' : 'MEM_WRITE = HIGH (1)'} and clocks synchronous timing.`
+          text: `Control line asserts ${operation === 'READ' ? 'MEM_READ = HIGH (1)' : 'MEM_WRITE = HIGH (1)'} and coordinates clock synchronization.`
         }
       ]);
     } else if (stepNumber === 3) {
@@ -88,8 +78,8 @@ export default function BusSimulator({ powerOn }) {
         {
           step: 3,
           bus: 'Memory Controller',
-          color: '#10b981',
-          text: `Memory Row/Column Decoders activate cell at ${selectedAddress}. Sense amplifiers prepare ${operation === 'READ' ? 'charge read' : 'charge write'}.`
+          color: '#059669',
+          text: `Memory Row & Column Decoders energize cell at ${selectedAddress}. Sense amplifiers prepare ${operation === 'READ' ? 'capacitor charge read' : 'charge write'}.`
         }
       ]);
     } else if (stepNumber === 4) {
@@ -101,8 +91,8 @@ export default function BusSimulator({ powerOn }) {
           {
             step: 4,
             bus: 'Data Bus',
-            color: '#8b5cf6',
-            text: `Data value ${val} travels across the Data Bus into CPU MDR register. Read Cycle Complete!`
+            color: '#4f46e5',
+            text: `Data value ${val} travels back across the bidirectional Data Bus and latches into the Memory Data Register (MDR). Cycle complete!`
           }
         ]);
       } else {
@@ -112,287 +102,315 @@ export default function BusSimulator({ powerOn }) {
           {
             step: 4,
             bus: 'Data Bus',
-            color: '#8b5cf6',
-            text: `Value ${dataToWrite} driven onto Data Bus and stored permanently in RAM cell ${selectedAddress}. Write Cycle Complete!`
+            color: '#4f46e5',
+            text: `Data value ${dataToWrite} is transferred over the Data Bus and written into RAM cell ${selectedAddress}. Memory updated!`
           }
         ]);
       }
-      setIsRunning(false);
     }
   };
 
-  const handleNextStep = () => {
-    if (currentStep < 4) {
-      executeStep(currentStep + 1);
-    } else {
-      resetSimulation();
-    }
-  };
-
-  const handleAutoRun = () => {
-    if (isRunning) return;
-    setIsRunning(true);
+  const autoRunSimulation = () => {
     resetSimulation();
-    let s = 1;
-    executeStep(1);
-    const interval = setInterval(() => {
-      s++;
-      if (s <= 4) {
-        executeStep(s);
-      } else {
-        clearInterval(interval);
-      }
-    }, 1100);
+    setTimeout(() => executeStep(1), 200);
+    setTimeout(() => executeStep(2), 1100);
+    setTimeout(() => executeStep(3), 2000);
+    setTimeout(() => executeStep(4), 2900);
+  };
+
+  // Address space calculation
+  const getCapacityString = (lines) => {
+    if (lines === 16) return '64 Kilobytes (KB) — Vintage 8-bit CPUs';
+    if (lines === 20) return '1 Megabyte (MB) — Intel 8086 IBM PC';
+    if (lines === 24) return '16 Megabytes (MB) — Intel 286 / Sega Genesis';
+    if (lines === 32) return '4 Gigabytes (GB) — Classic 32-bit limit';
+    if (lines === 36) return '64 Gigabytes (GB) — 32-bit PAE Servers';
+    if (lines === 48) return '256 Terabytes (TB) — Modern x86-64 Virtual Address limit';
+    if (lines === 64) return '18.4 Quintillion Bytes (16 Exabytes) — Theoretical 64-bit max';
+    const bytes = Math.pow(2, lines);
+    if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} Gigabytes (GB)`;
+    if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} Megabytes (MB)`;
+    return `${(bytes / 1e3).toFixed(1)} Kilobytes (KB)`;
   };
 
   return (
-    <div className="bus-simulator-panel">
-      {/* Simulation Header */}
-      <div className="simulator-header-bar">
-        <div>
-          <span className="panel-kicker">INTERACTIVE SYSTEM BUS SIMULATOR</span>
-          <h3>CPU ⇄ Memory Bus ⇄ RAM Data Flow</h3>
-          <p className="simulator-subtitle">
-            See how the 3 distinct physical buses work in perfect sync to read and write bytes.
-          </p>
+    <div className="page-shell">
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-eyebrow">
+          <Activity size={14} /> MODULE 03 • BUS INTERCONNECTS & TIMING
         </div>
+        <h1 className="hero-headline">System Bus & <span>Memory Controller</span></h1>
+        <p className="hero-lead">
+          The CPU and Main Memory never touch directly. Every read and write transaction traverses three dedicated 
+          hardware bus lines: Address, Control, and Data.
+        </p>
+      </section>
 
-        {/* Action Controls */}
-        <div className="simulator-action-controls">
-          <div className="segmented-control">
-            <button 
-              className={operation === 'READ' ? 'active-op read' : ''}
-              onClick={() => { setOperation('READ'); resetSimulation(); }}
-            >
-              MEM READ
-            </button>
-            <button 
-              className={operation === 'WRITE' ? 'active-op write' : ''}
-              onClick={() => { setOperation('WRITE'); resetSimulation(); }}
-            >
-              MEM WRITE
-            </button>
-          </div>
-
-          <div className="param-selectors">
-            <label>
-              Target Address:
-              <select 
-                value={selectedAddress} 
-                onChange={(e) => { setSelectedAddress(e.target.value); resetSimulation(); }}
-                disabled={isRunning}
+      {/* Simulator Workspace Card */}
+      <section className="workspace-card bus-lab-card">
+        {/* Top Configuration Bar */}
+        <div className="bus-config-header">
+          <div className="config-block">
+            <span className="config-lbl">1. CHOOSE OPERATION:</span>
+            <div className="segmented-control">
+              <button
+                className={operation === 'READ' ? 'active-op read' : ''}
+                onClick={() => { setOperation('READ'); resetSimulation(); }}
               >
-                {Object.keys(ramData).map(addr => (
-                  <option key={addr} value={addr}>{addr}</option>
-                ))}
-              </select>
-            </label>
-
-            {operation === 'WRITE' && (
-              <label>
-                Data Byte:
-                <select 
-                  value={dataToWrite} 
-                  onChange={(e) => { setDataToWrite(e.target.value); resetSimulation(); }}
-                  disabled={isRunning}
-                >
-                  <option value="0xAA">0xAA (10101010)</option>
-                  <option value="0xFF">0xFF (11111111)</option>
-                  <option value="0x42">0x42 (01000010)</option>
-                  <option value="0x7E">0x7E (01111110)</option>
-                </select>
-              </label>
-            )}
-          </div>
-
-          <div className="sim-buttons-group">
-            <button 
-              className="atelier-primary-btn" 
-              onClick={handleAutoRun}
-              disabled={isRunning || !powerOn}
-            >
-              <Play size={14} />
-              <span>{isRunning ? 'Running Cycle...' : 'Auto-Play Cycle'}</span>
-            </button>
-            <button 
-              className="atelier-step-btn"
-              onClick={handleNextStep}
-              disabled={isRunning || !powerOn}
-            >
-              <span>{currentStep === 4 ? 'Cycle Done (Reset)' : `Step ${currentStep + 1} / 4`}</span>
-              <ArrowRight size={13} />
-            </button>
-            <button className="atelier-icon-btn" onClick={resetSimulation} title="Reset">
-              <RotateCcw size={14} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Bus Architecture Visual Stage */}
-      <div className="bus-visual-stage">
-        {/* Left Side: CPU Unit */}
-        <div className="stage-block cpu-block">
-          <div className="block-title">
-            <Cpu size={16} />
-            <span>CENTRAL PROCESSOR (CPU)</span>
-          </div>
-
-          <div className="register-list">
-            <div className="reg-row">
-              <span className="reg-name">MAR (Address Reg)</span>
-              <code className={currentStep >= 1 ? 'reg-active addr' : ''}>{cpuRegisters.MAR}</code>
-            </div>
-            <div className="reg-row">
-              <span className="reg-name">MDR (Data Buffer)</span>
-              <code className={currentStep >= 4 ? 'reg-active data' : ''}>{cpuRegisters.MDR}</code>
-            </div>
-            <div className="reg-row">
-              <span className="reg-name">PC (Program Counter)</span>
-              <code>{cpuRegisters.PC}</code>
-            </div>
-          </div>
-
-          <div className="cpu-status-indicator">
-            <span className="status-label">CURRENT STATUS:</span>
-            <strong>
-              {currentStep === 0 && 'Ready for cycle'}
-              {currentStep === 1 && `Sending Address ${selectedAddress}`}
-              {currentStep === 2 && `Asserting ${operation} Signal`}
-              {currentStep === 3 && 'Waiting for RAM access'}
-              {currentStep === 4 && (operation === 'READ' ? `Received ${cpuRegisters.MDR}` : 'Written to RAM')}
-            </strong>
-          </div>
-        </div>
-
-        {/* Center: The Three System Buses */}
-        <div className="stage-buses-channel">
-          {/* Address Bus */}
-          <div className={`bus-lane address-bus ${currentStep === 1 ? 'bus-glowing' : ''}`}>
-            <div className="bus-badge-label">
-              <span className="bus-pill-tag addr-tag">ADDRESS BUS</span>
-              <span className="bus-direction">Unidirectional (CPU → RAM)</span>
-            </div>
-            <div className="bus-wire">
-              <div className={`bus-particle ${currentStep === 1 ? 'animate-forward' : ''}`}>
-                <span>{selectedAddress}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Control Bus */}
-          <div className={`bus-lane control-bus ${currentStep === 2 ? 'bus-glowing' : ''}`}>
-            <div className="bus-badge-label">
-              <span className="bus-pill-tag ctrl-tag">CONTROL BUS</span>
-              <span className="bus-direction">Signals: {operation} • CLOCK</span>
-            </div>
-            <div className="bus-wire">
-              <div className={`bus-particle ${currentStep === 2 ? 'animate-forward pulse' : ''}`}>
-                <span>{operation === 'READ' ? 'MEM_RD=1' : 'MEM_WR=1'}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Data Bus */}
-          <div className={`bus-lane data-bus ${currentStep === 4 ? 'bus-glowing' : ''}`}>
-            <div className="bus-badge-label">
-              <span className="bus-pill-tag data-tag">DATA BUS (64-Bit)</span>
-              <span className="bus-direction">
-                {operation === 'READ' ? 'Bidirectional (RAM → CPU)' : 'Bidirectional (CPU → RAM)'}
-              </span>
-            </div>
-            <div className="bus-wire">
-              <div 
-                className={`bus-particle ${currentStep === 4 ? (operation === 'READ' ? 'animate-backward' : 'animate-forward') : ''}`}
+                Memory READ (Load)
+              </button>
+              <button
+                className={operation === 'WRITE' ? 'active-op write' : ''}
+                onClick={() => { setOperation('WRITE'); resetSimulation(); }}
               >
-                <span>{operation === 'READ' ? ramData[selectedAddress] : dataToWrite}</span>
-              </div>
+                Memory WRITE (Store)
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Right Side: RAM Module & Memory Cell Bank */}
-        <div className="stage-block ram-block">
-          <div className="block-title">
-            <Layers size={16} />
-            <span>SYSTEM RAM (DRAM CELLS)</span>
-          </div>
-
-          <div className="ram-decoder-row">
-            <span className="decoder-label">Address Decoder:</span>
-            <span className={`decoder-val ${currentStep >= 3 ? 'decoder-active' : ''}`}>
-              {currentStep >= 3 ? `ROW/COL -> Cell [${selectedAddress}]` : 'Standby'}
-            </span>
-          </div>
-
-          {/* Interactive Memory Grid */}
-          <div className="ram-cells-mini-grid">
-            {Object.entries(ramData).map(([addr, val]) => {
-              const isTarget = addr === selectedAddress;
-              const isHighlight = isTarget && currentStep >= 3;
-              return (
-                <div 
-                  key={addr} 
-                  className={`ram-cell-slot ${isHighlight ? 'active-slot' : ''}`}
+          <div className="config-block">
+            <span className="config-lbl">2. SELECT RAM ADDRESS:</span>
+            <div className="addr-chips-row">
+              {Object.keys(ramData).map((addr) => (
+                <button
+                  key={addr}
+                  className={`addr-select-chip ${selectedAddress === addr ? 'selected' : ''}`}
                   onClick={() => { setSelectedAddress(addr); resetSimulation(); }}
                 >
-                  <span className="slot-addr">{addr}</span>
-                  <span className="slot-val">{val}</span>
-                </div>
-              );
-            })}
+                  {addr}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="ram-sense-amp-status">
-            <Activity size={13} />
+          {operation === 'WRITE' && (
+            <div className="config-block">
+              <span className="config-lbl">3. DATA BYTE TO WRITE:</span>
+              <input
+                type="text"
+                className="data-input-box"
+                value={dataToWrite}
+                maxLength={4}
+                onChange={(e) => setDataToWrite(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Execution Toolbar */}
+        <div className="bus-actions-bar">
+          <div className="bus-step-buttons">
+            <button className="btn-bus-run" onClick={autoRunSimulation}>
+              <Play size={15} /> Run Complete Clock Cycle
+            </button>
+            <button 
+              className={`btn-bus-step ${currentStep >= 1 ? 'done' : ''}`} 
+              onClick={() => executeStep(1)}
+            >
+              1. Address
+            </button>
+            <button 
+              className={`btn-bus-step ${currentStep >= 2 ? 'done' : ''}`} 
+              onClick={() => executeStep(2)}
+            >
+              2. Control
+            </button>
+            <button 
+              className={`btn-bus-step ${currentStep >= 3 ? 'done' : ''}`} 
+              onClick={() => executeStep(3)}
+            >
+              3. Decode
+            </button>
+            <button 
+              className={`btn-bus-step ${currentStep >= 4 ? 'done' : ''}`} 
+              onClick={() => executeStep(4)}
+            >
+              4. Transfer
+            </button>
+            <button className="btn-bus-reset" onClick={resetSimulation}>
+              <RotateCcw size={14} /> Reset
+            </button>
+          </div>
+
+          <div className="bus-status-indicator">
+            <span className="status-dot" style={{ backgroundColor: currentStep === 4 ? '#059669' : '#0284c7' }} />
             <span>
-              {currentStep === 3 ? 'Sense Amplifiers Latching Bit Charge...' : 'Sense Amps Ready'}
+              {currentStep === 0 && 'System Idle — Ready for transaction'}
+              {currentStep === 1 && `T1: MAR latched with ${selectedAddress} → Address Bus active`}
+              {currentStep === 2 && `T2: Control line asserted ${operation === 'READ' ? 'MEMR#' : 'MEMW#'}`}
+              {currentStep === 3 && 'T3: Row/Column decoders reading capacitor charges'}
+              {currentStep === 4 && `T4: Transaction complete! Data ${operation === 'READ' ? ramData[selectedAddress] : dataToWrite} transferred`}
             </span>
           </div>
         </div>
-      </div>
 
-      {/* Micro-Operation Terminal & Beginner Explanation */}
-      <div className="simulator-details-grid">
-        <div className="sim-terminal-box">
-          <div className="terminal-top">
-            <Clock size={13} />
-            <span>BUS TRANSACTION MICRO-LOG (CLOCK CYCLES)</span>
+        {/* Hardware Circuit Layout */}
+        <div className="bus-circuit-stage">
+          {/* CPU Block */}
+          <div className="hardware-box cpu-hardware">
+            <div className="box-top">
+              <Cpu size={18} />
+              <span>CPU CORES (ALU)</span>
+            </div>
+            <div className="registers-list">
+              <div className="reg-row">
+                <span className="r-name">Program Counter (PC):</span>
+                <span className="r-val">{cpuRegisters.PC}</span>
+              </div>
+              <div className={`reg-row ${currentStep >= 1 ? 'reg-active' : ''}`}>
+                <span className="r-name">Mem Address Reg (MAR):</span>
+                <span className="r-val">{cpuRegisters.MAR}</span>
+              </div>
+              <div className={`reg-row ${currentStep >= 4 ? 'reg-active' : ''}`}>
+                <span className="r-name">Mem Data Reg (MDR):</span>
+                <span className="r-val">{cpuRegisters.MDR}</span>
+              </div>
+            </div>
           </div>
-          <div className="terminal-logs">
+
+          {/* 3 Bus Traces */}
+          <div className="bus-lanes-column">
+            {/* Address Bus */}
+            <div className={`bus-lane address-lane ${currentStep >= 1 ? 'lane-energized' : ''}`}>
+              <div className="lane-header">
+                <strong>ADDRESS BUS (Unidirectional: CPU → RAM)</strong>
+                <span className="bus-state-pill">{currentStep >= 1 ? selectedAddress : '0x00 (Tri-stated)'}</span>
+              </div>
+              <div className="bus-physical-wire">
+                {currentStep >= 1 && <div className="pulse-signal to-right" />}
+              </div>
+            </div>
+
+            {/* Control Bus */}
+            <div className={`bus-lane control-lane ${currentStep >= 2 ? 'lane-energized' : ''}`}>
+              <div className="lane-header">
+                <strong>CONTROL BUS (MEMR# / MEMW# / CLK)</strong>
+                <span className="bus-state-pill">
+                  {currentStep >= 2 ? (operation === 'READ' ? 'MEM_READ = 1' : 'MEM_WRITE = 1') : 'IDLE'}
+                </span>
+              </div>
+              <div className="bus-physical-wire">
+                {currentStep >= 2 && <div className="pulse-signal to-right" />}
+              </div>
+            </div>
+
+            {/* Data Bus */}
+            <div className={`bus-lane data-lane ${currentStep >= 4 ? 'lane-energized' : ''}`}>
+              <div className="lane-header">
+                <strong>DATA BUS (Bidirectional: 64-bit Payload)</strong>
+                <span className="bus-state-pill">
+                  {currentStep >= 4 ? (operation === 'READ' ? ramData[selectedAddress] : dataToWrite) : 'HIGH-Z'}
+                </span>
+              </div>
+              <div className="bus-physical-wire">
+                {currentStep >= 4 && (
+                  <div className={`pulse-signal ${operation === 'READ' ? 'to-left' : 'to-right'}`} />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* RAM Block */}
+          <div className="hardware-box ram-hardware">
+            <div className="box-top">
+              <Zap size={18} />
+              <span>MAIN RAM (DRAM DIMM)</span>
+            </div>
+            <div className="ram-cells-mini-list">
+              {Object.entries(ramData).map(([addr, val]) => {
+                const isTarget = addr === selectedAddress;
+                return (
+                  <div 
+                    key={addr} 
+                    className={`ram-cell-strip ${isTarget && currentStep >= 3 ? 'cell-targeted' : ''}`}
+                  >
+                    <span className="cell-a">{addr}:</span>
+                    <strong className="cell-d">{val}</strong>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Transaction Micro-Log */}
+        <div className="bus-log-container">
+          <div className="log-header-line">
+            <Clock size={14} />
+            <span>SYNCHRONOUS CLOCK CYCLE TRACE</span>
+          </div>
+          <div className="log-entries-list">
             {cycleLog.length === 0 ? (
-              <div className="log-placeholder">
-                Click <strong>"Auto-Play Cycle"</strong> or <strong>"Step 1 / 4"</strong> to execute this bus transaction.
+              <div className="empty-log-prompt">
+                Click <strong>"Run Complete Clock Cycle"</strong> above to inspect how the signals traverse each bus wire.
               </div>
             ) : (
-              cycleLog.map((log, i) => (
-                <div key={i} className="log-item" style={{ borderLeftColor: log.color }}>
-                  <span className="log-step-tag">Step {log.step} • {log.bus}</span>
-                  <p>{log.text}</p>
+              cycleLog.map((entry, idx) => (
+                <div key={idx} className="log-row-item" style={{ borderLeftColor: entry.color }}>
+                  <span className="log-step-tag">Step {entry.step} • {entry.bus}</span>
+                  <p>{entry.text}</p>
                 </div>
               ))
             )}
           </div>
         </div>
+      </section>
 
-        <div className="beginner-explainer-card">
-          <div className="explainer-head">
-            <HelpCircle size={15} />
-            <span>BEGINNER NOTE: WHY 3 SEPARATE BUSES?</span>
+      {/* Address Bus Width & Memory Capacity Calculator */}
+      <section className="address-calc-section">
+        <div className="section-header">
+          <div>
+            <span className="section-label">MATHEMATICAL HARDWARE LAW</span>
+            <h2>Address Bus Width: The 2<sup>N</sup> Maximum RAM Limit</h2>
           </div>
           <p>
-            Think of a bank transaction:
-          </p>
-          <ul>
-            <li><strong>Address Bus:</strong> The teller asks for your Account Number (Location).</li>
-            <li><strong>Control Bus:</strong> You state whether you want to Deposit or Withdraw (Instruction).</li>
-            <li><strong>Data Bus:</strong> The cash bills are slid across the counter (Payload).</li>
-          </ul>
-          <p className="footnote">
-            Keeping the address separate from the data allows memory controllers to look up the next location while previous data is still flowing!
+            Why did older 32-bit Windows PCs get stuck at 4GB RAM? The number of physical copper address wires 
+            dictates the maximum amount of memory a CPU can ever reference.
           </p>
         </div>
-      </div>
+
+        <div className="workspace-card calc-card">
+          <div className="calc-slider-row">
+            <div className="slider-label-group">
+              <span className="slider-title">Physical Address Lines (N):</span>
+              <strong className="slider-num">{addressLines} Address Pins</strong>
+            </div>
+
+            <input
+              type="range"
+              min={16}
+              max={64}
+              step={addressLines < 36 ? 4 : (addressLines < 48 ? 4 : 16)}
+              value={addressLines}
+              className="calc-range-slider"
+              onChange={(e) => setAddressLines(parseInt(e.target.value, 10))}
+            />
+
+            <div className="slider-ticks">
+              <span>16-bit (64KB)</span>
+              <span>20-bit (1MB)</span>
+              <span>32-bit (4GB)</span>
+              <span>36-bit (64GB)</span>
+              <span>64-bit (16EB)</span>
+            </div>
+          </div>
+
+          <div className="calc-result-box">
+            <div className="calc-formula">
+              <span>Formula:</span>
+              <strong>Addressable RAM = 2<sup>N</sup> Bytes = 2<sup>{addressLines}</sup> Bytes</strong>
+            </div>
+            <div className="calc-output">
+              <span>Maximum Supportable Main Memory:</span>
+              <h3 className="calc-big-stat">{getCapacityString(addressLines)}</h3>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Module Bottom Navigation */}
+      <ModuleBottomNav currentTab="bus-lab" setCurrentTab={onNavigateTab} />
     </div>
   );
 }

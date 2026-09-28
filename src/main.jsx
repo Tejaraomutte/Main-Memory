@@ -1,36 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import Header from './components/Header';
+import Header, { MAIN_MEMORY_MODULES } from './components/Header';
 import ExplorerLayout from './components/ExplorerLayout';
-import BusSimulator from './components/BusSimulator';
 import MemoryMatrix from './components/MemoryMatrix';
+import BusSimulator from './components/BusSimulator';
 import CellPhysics from './components/CellPhysics';
 import CompareView from './components/CompareView';
-import SpeedRace from './components/SpeedRace';
 import BeginnerAcademy from './components/BeginnerAcademy';
 import Quiz from './components/Quiz';
-import { 
-  Layers, 
-  Activity, 
-  Cpu, 
-  Zap, 
-  Sparkles, 
-  BookOpen, 
-  HelpCircle, 
-  ShieldCheck,
-  MemoryStick
-} from 'lucide-react';
+import { MemoryStick, Sparkles, Layers } from 'lucide-react';
 import './styles.css';
 
 function App() {
   const [currentTab, setCurrentTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['explorer', 'bus-lab', 'matrix-lab', 'cell-lab', 'compare', 'speed-race', 'academy', 'quiz'];
-    return validTabs.includes(hash) ? hash : 'explorer';
+    const valid = MAIN_MEMORY_MODULES.find(m => m.id === hash);
+    return valid ? valid.id : 'explorer';
   });
 
   const [selectedCompId, setSelectedCompId] = useState('dram');
-  const [powerOn, setPowerOn] = useState(true);
 
   const handleTabChange = (tabId) => {
     setCurrentTab(tabId);
@@ -41,9 +29,9 @@ function App() {
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['explorer', 'bus-lab', 'matrix-lab', 'cell-lab', 'compare', 'speed-race', 'academy', 'quiz'];
-      if (validTabs.includes(hash) && hash !== currentTab) {
-        setCurrentTab(hash);
+      const valid = MAIN_MEMORY_MODULES.find(m => m.id === hash);
+      if (valid && valid.id !== currentTab) {
+        setCurrentTab(valid.id);
       }
     };
     window.addEventListener('hashchange', handleHash);
@@ -52,12 +40,10 @@ function App() {
 
   return (
     <div className="atelier-app-root">
-      {/* Top Header with live Power switch and Search */}
+      {/* Clean Global Navbar */}
       <Header
         currentTab={currentTab}
         setCurrentTab={handleTabChange}
-        powerOn={powerOn}
-        setPowerOn={setPowerOn}
         onSelectComponent={(id) => {
           setSelectedCompId(id);
           handleTabChange('explorer');
@@ -70,133 +56,73 @@ function App() {
           <ExplorerLayout
             selectedCompId={selectedCompId}
             setSelectedCompId={setSelectedCompId}
-            powerOn={powerOn}
-            setPowerOn={setPowerOn}
             onNavigateTab={handleTabChange}
           />
         )}
 
-        {currentTab === 'bus-lab' && (
-          <div className="tab-fullscreen-container">
-            <BusSimulator powerOn={powerOn} />
-          </div>
+        {currentTab === 'matrix-lab' && (
+          <MemoryMatrix onNavigateTab={handleTabChange} />
         )}
 
-        {currentTab === 'matrix-lab' && (
-          <div className="tab-fullscreen-container">
-            <MemoryMatrix powerOn={powerOn} />
-          </div>
+        {currentTab === 'bus-lab' && (
+          <BusSimulator onNavigateTab={handleTabChange} />
         )}
 
         {currentTab === 'cell-lab' && (
-          <div className="tab-fullscreen-container">
-            <CellPhysics powerOn={powerOn} />
-          </div>
+          <CellPhysics onNavigateTab={handleTabChange} />
         )}
 
         {currentTab === 'compare' && (
-          <div className="tab-fullscreen-container">
-            <CompareView />
-          </div>
-        )}
-
-        {currentTab === 'speed-race' && (
-          <div className="tab-fullscreen-container">
-            <SpeedRace />
-          </div>
+          <CompareView onNavigateTab={handleTabChange} />
         )}
 
         {currentTab === 'academy' && (
-          <div className="tab-fullscreen-container">
-            <BeginnerAcademy powerOn={powerOn} setPowerOn={setPowerOn} />
-          </div>
+          <BeginnerAcademy onNavigateTab={handleTabChange} />
         )}
 
         {currentTab === 'quiz' && (
-          <div className="tab-fullscreen-container">
-            <Quiz />
-          </div>
+          <Quiz onNavigateTab={handleTabChange} />
         )}
       </main>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="bottom-nav">
-        <button
-          className={`bottom-nav-item ${currentTab === 'explorer' ? 'active' : ''}`}
-          onClick={() => handleTabChange('explorer')}
-        >
-          <div className="bottom-nav-icon-wrap"><Layers size={17} /></div>
-          <span className="bottom-nav-label">Explorer</span>
-        </button>
-        <button
-          className={`bottom-nav-item ${currentTab === 'bus-lab' ? 'active' : ''}`}
-          onClick={() => handleTabChange('bus-lab')}
-        >
-          <div className="bottom-nav-icon-wrap"><Activity size={17} /></div>
-          <span className="bottom-nav-label">Bus Lab</span>
-        </button>
-        <button
-          className={`bottom-nav-item ${currentTab === 'matrix-lab' ? 'active' : ''}`}
-          onClick={() => handleTabChange('matrix-lab')}
-        >
-          <div className="bottom-nav-icon-wrap"><Cpu size={17} /></div>
-          <span className="bottom-nav-label">Matrix</span>
-        </button>
-        <button
-          className={`bottom-nav-item ${currentTab === 'cell-lab' ? 'active' : ''}`}
-          onClick={() => handleTabChange('cell-lab')}
-        >
-          <div className="bottom-nav-icon-wrap"><Zap size={17} /></div>
-          <span className="bottom-nav-label">Silicon</span>
-        </button>
-        <button
-          className={`bottom-nav-item ${currentTab === 'compare' ? 'active' : ''}`}
-          onClick={() => handleTabChange('compare')}
-        >
-          <div className="bottom-nav-icon-wrap"><ShieldCheck size={17} /></div>
-          <span className="bottom-nav-label">RAM/ROM</span>
-        </button>
-        <button
-          className={`bottom-nav-item ${currentTab === 'academy' ? 'active' : ''}`}
-          onClick={() => handleTabChange('academy')}
-        >
-          <div className="bottom-nav-icon-wrap"><BookOpen size={17} /></div>
-          <span className="bottom-nav-label">Academy</span>
-        </button>
-        <button
-          className={`bottom-nav-item ${currentTab === 'quiz' ? 'active' : ''}`}
-          onClick={() => handleTabChange('quiz')}
-        >
-          <div className="bottom-nav-icon-wrap"><HelpCircle size={17} /></div>
-          <span className="bottom-nav-label">Quiz</span>
-        </button>
-      </nav>
-
       {/* Modern Light Theme Footer */}
-      <footer className="atelier-footer">
-        <div className="footer-left">
-          <div className="footer-logo">
-            <MemoryStick size={20} />
+      <footer className="global-site-footer">
+        <div className="footer-inner">
+          <div className="footer-brand-col">
+            <div className="footer-logo">
+              <span className="brand-mark-sm">
+                <MemoryStick size={16} />
+              </span>
+              <strong>Main Memory Atelier</strong>
+            </div>
+            <p className="footer-tagline">
+              An interactive, beginner-friendly exploration exclusively focused on Main Memory: DRAM, SRAM, ROM, 2D Silicon Matrix, and System Buses.
+            </p>
           </div>
-          <div>
-            <strong>Main Memory Atelier</strong>
-            <small>Interactive Computer Architecture Studio • Focused Exclusively on Primary Storage</small>
+
+          <div className="footer-chapters-col">
+            <span className="footer-col-title">Main Memory Modules</span>
+            <div className="footer-links-grid">
+              {MAIN_MEMORY_MODULES.map((m) => (
+                <button 
+                  key={m.id} 
+                  className={`footer-link ${currentTab === m.id ? 'active' : ''}`}
+                  onClick={() => handleTabChange(m.id)}
+                >
+                  <span className="footer-ch-num">{m.num}</span> {m.pill}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="footer-links">
-          <button onClick={() => handleTabChange('explorer')}>3D Explorer</button>
-          <button onClick={() => handleTabChange('bus-lab')}>Bus Simulator</button>
-          <button onClick={() => handleTabChange('matrix-lab')}>Memory Matrix</button>
-          <button onClick={() => handleTabChange('cell-lab')}>1-Bit Silicon Cell</button>
-          <button onClick={() => handleTabChange('compare')}>RAM vs ROM</button>
-          <button onClick={() => handleTabChange('speed-race')}>Speed Hierarchy</button>
-          <button onClick={() => handleTabChange('academy')}>Beginner Academy</button>
-          <button onClick={() => handleTabChange('quiz')}>Mastery Quiz</button>
-        </div>
-
-        <div className="footer-right">
-          <span>Complete Visualizations • Clean Light Theme Studio</span>
+          <div className="footer-meta-col">
+            <div className="footer-badge">
+              <Sparkles size={14} /> Interactive Silicon Architecture Studio
+            </div>
+            <p className="footer-copy">
+              Designed with precision alignment, clean typography, and zero clutter. Optimized for students and systems developers.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

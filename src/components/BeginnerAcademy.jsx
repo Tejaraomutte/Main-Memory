@@ -1,10 +1,65 @@
 import React, { useState } from 'react';
-import { GLOSSARY_TERMS } from '../data/memoryData';
-import { BookOpen, Search, ArrowRight, Lightbulb, Zap, HelpCircle, Laptop, HardDrive, Cpu, CheckCircle } from 'lucide-react';
+import { GLOSSARY_TERMS, SPEED_LEVELS } from '../data/memoryData';
+import { BookOpen, Search, ArrowRight, Lightbulb, Zap, Laptop, HardDrive, Cpu, Play, RotateCcw, Clock, Sparkles } from 'lucide-react';
+import ModuleBottomNav from './ModuleBottomNav';
 
-export default function BeginnerAcademy({ powerOn, setPowerOn }) {
+export default function BeginnerAcademy({ onNavigateTab }) {
   const [activeStep, setActiveStep] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Speed Race State
+  const [racing, setRacing] = useState(false);
+  const [raceProgress, setRaceProgress] = useState({
+    'CPU Registers': 0,
+    'L1 CPU Cache': 0,
+    'L2 CPU Cache': 0,
+    'L3 CPU Cache': 0,
+    'Main Memory (DDR5 RAM)': 0,
+    'NVMe Gen4 SSD': 0,
+    'Hard Disk Drive (HDD)': 0
+  });
+
+  const startRace = () => {
+    if (racing) return;
+    setRacing(true);
+    setRaceProgress({
+      'CPU Registers': 0,
+      'L1 CPU Cache': 0,
+      'L2 CPU Cache': 0,
+      'L3 CPU Cache': 0,
+      'Main Memory (DDR5 RAM)': 0,
+      'NVMe Gen4 SSD': 0,
+      'Hard Disk Drive (HDD)': 0
+    });
+
+    setTimeout(() => setRaceProgress(p => ({ ...p, 'CPU Registers': 100 })), 150);
+    setTimeout(() => setRaceProgress(p => ({ ...p, 'L1 CPU Cache': 100 })), 350);
+    setTimeout(() => setRaceProgress(p => ({ ...p, 'L2 CPU Cache': 100 })), 700);
+    setTimeout(() => setRaceProgress(p => ({ ...p, 'L3 CPU Cache': 100 })), 1200);
+    setTimeout(() => setRaceProgress(p => ({ ...p, 'Main Memory (DDR5 RAM)': 100 })), 1900);
+    
+    let ssdProg = 0;
+    const ssdInt = setInterval(() => {
+      ssdProg += 3;
+      if (ssdProg >= 45) clearInterval(ssdInt);
+      setRaceProgress(p => ({ ...p, 'NVMe Gen4 SSD': ssdProg }));
+    }, 100);
+
+    setTimeout(() => setRacing(false), 2600);
+  };
+
+  const resetRace = () => {
+    setRacing(false);
+    setRaceProgress({
+      'CPU Registers': 0,
+      'L1 CPU Cache': 0,
+      'L2 CPU Cache': 0,
+      'L3 CPU Cache': 0,
+      'Main Memory (DDR5 RAM)': 0,
+      'NVMe Gen4 SSD': 0,
+      'Hard Disk Drive (HDD)': 0
+    });
+  };
 
   const filteredGlossary = GLOSSARY_TERMS.filter(item =>
     item.term.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -12,204 +67,183 @@ export default function BeginnerAcademy({ powerOn, setPowerOn }) {
   );
 
   return (
-    <div className="academy-wrapper">
-      {/* Academy Banner */}
-      <div className="academy-hero">
-        <span className="panel-kicker">BEGINNER INTUITION ACADEMY</span>
-        <h2>How Computer Memory Actually Works</h2>
+    <div className="page-shell">
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-eyebrow">
+          <BookOpen size={14} /> MODULE 06 • BEGINNER INTUITION ACADEMY
+        </div>
+        <h1 className="hero-headline">How Memory <span>Actually Works</span></h1>
         <p className="hero-lead">
           No engineering degree required. Everything in computer memory revolves around one simple problem: 
-          <strong> the CPU thinks in nanoseconds, but files live in slow permanent storage.</strong>
+          <strong> the CPU thinks in nanoseconds, but permanent files live in slow storage.</strong>
         </p>
-      </div>
+      </section>
 
       {/* Interactive 4-Step Lifecycle Journey */}
-      <div className="lifecycle-journey-card">
-        <div className="lifecycle-header">
-          <div className="lifecycle-title">
-            <Laptop size={18} />
-            <span>Interactive Journey: What happens when you open an App or Game?</span>
+      <section className="workspace-card lifecycle-card">
+        <div className="card-header-bar">
+          <div>
+            <span className="card-kicker">STEP-BY-STEP PIPELINE</span>
+            <h3>What Happens When You Open an App or Game?</h3>
           </div>
-          <div className="step-selector-pills">
+          <div className="step-pills-row">
             {[1, 2, 3, 4].map(s => (
               <button 
                 key={s} 
-                className={`step-pill ${activeStep === s ? 'step-active' : ''}`}
+                className={`step-btn-pill ${activeStep === s ? 'active' : ''}`}
                 onClick={() => setActiveStep(s)}
               >
-                Step {s}
+                Step 0{s}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Visual Pipeline */}
-        <div className="lifecycle-nodes-flow">
-          <div className={`lifecycle-node ${activeStep === 1 ? 'node-highlight' : ''}`}>
-            <div className="node-icon-box storage-color">
-              <HardDrive size={20} />
-            </div>
+        {/* Visual Pipeline Nodes */}
+        <div className="lifecycle-pipeline-row">
+          <div className={`pipeline-node ${activeStep === 1 ? 'active-node' : ''}`}>
+            <div className="node-icon-box storage-color"><HardDrive size={22} /></div>
             <strong>01. SSD Storage</strong>
             <small>Game files saved on disk</small>
-            <span className="speed-tag">Slow • Permanent</span>
+            <span className="node-tag">Slow • Permanent</span>
           </div>
 
-          <div className="flow-arrow-wire">
-            <ArrowRight size={18} />
+          <div className="pipeline-arrow"><ArrowRight size={20} /></div>
+
+          <div className={`pipeline-node ${activeStep === 2 ? 'active-node' : ''}`}>
+            <div className="node-icon-box bus-color"><Zap size={22} /></div>
+            <strong>02. System Bus</strong>
+            <small>Data travels across motherboard</small>
+            <span className="node-tag">Copper Traces</span>
           </div>
 
-          <div className={`lifecycle-node ${activeStep === 2 ? 'node-highlight' : ''}`}>
-            <div className="node-icon-box ram-color">
-              <BookOpen size={20} />
-            </div>
-            <strong>02. Main RAM</strong>
-            <small>Active program loaded</small>
-            <span className="speed-tag">Fast • Volatile</span>
+          <div className="pipeline-arrow"><ArrowRight size={20} /></div>
+
+          <div className={`pipeline-node ${activeStep === 3 ? 'active-node' : ''}`}>
+            <div className="node-icon-box ram-color"><Laptop size={22} /></div>
+            <strong>03. System RAM</strong>
+            <small>Loaded into working space</small>
+            <span className="node-tag">Fast • 10–20ns</span>
           </div>
 
-          <div className="flow-arrow-wire">
-            <ArrowRight size={18} />
-          </div>
+          <div className="pipeline-arrow"><ArrowRight size={20} /></div>
 
-          <div className={`lifecycle-node ${activeStep === 3 ? 'node-highlight' : ''}`}>
-            <div className="node-icon-box cache-color">
-              <Zap size={20} />
-            </div>
-            <strong>03. CPU Cache (SRAM)</strong>
-            <small>Hot instructions buffered</small>
-            <span className="speed-tag">Blazing • Microscopic</span>
-          </div>
-
-          <div className="flow-arrow-wire">
-            <ArrowRight size={18} />
-          </div>
-
-          <div className={`lifecycle-node ${activeStep === 4 ? 'node-highlight' : ''}`}>
-            <div className="node-icon-box cpu-color">
-              <Cpu size={20} />
-            </div>
+          <div className={`pipeline-node ${activeStep === 4 ? 'active-node' : ''}`}>
+            <div className="node-icon-box cpu-color"><Cpu size={22} /></div>
             <strong>04. CPU Core</strong>
-            <small>Executes logic at 5 GHz</small>
-            <span className="speed-tag">Brain of Computer</span>
+            <small>Executes 4 billion ops/sec</small>
+            <span className="node-tag">Instant • 0.25ns</span>
           </div>
         </div>
 
-        {/* Active Step Detailed Explanation */}
-        <div className="step-explainer-box">
+        {/* Dynamic Step Detail Card */}
+        <div className="step-explanation-box">
           {activeStep === 1 && (
             <div>
-              <h4>Step 1: Your App Lives Quietly on the SSD</h4>
-              <p>
-                When your computer is turned off or an application is closed, its code and textures are saved as magnetic or flash charges on your Solid State Drive (SSD). 
-                The CPU cannot run code directly from the SSD because transferring data across the drive cable is hundreds of times too slow.
-              </p>
+              <h4 className="text-amber">Step 1: The App Lives on Permanent Storage (SSD / Hard Drive)</h4>
+              <p>When your computer is turned off, all your photos, games, and applications reside on your SSD. SSD storage is permanent (non-volatile), but it is physically located inches away across cables and PCIe buses, making it thousands of times too slow for the CPU to run code directly from it.</p>
             </div>
           )}
           {activeStep === 2 && (
             <div>
-              <h4>Step 2: Windows / macOS Copies the App into Main RAM</h4>
-              <p>
-                When you double-click the app icon, the Operating System reads gigabytes of code from the SSD and copies it into <strong>RAM</strong>. 
-                Now, the program is waiting in high-speed DRAM chips only inches away from the processor.
-              </p>
+              <h4 className="text-cyan">Step 2: Operating System Copies Code Across the System Bus</h4>
+              <p>When you double-click an icon, the OS kernel instructs the storage controller to read the compiled machine code instructions and stream them across the motherboard bus wires directly into RAM.</p>
             </div>
           )}
           {activeStep === 3 && (
             <div>
-              <h4>Step 3: The CPU Pulls Active Loops into L1/L2/L3 Cache</h4>
-              <p>
-                Inside the computer processor, high-speed <strong>SRAM Cache</strong> predicts what instructions the app will run next. 
-                It prefetches the next loop so the CPU cores never have to pause for a single clock cycle.
-              </p>
+              <h4 className="text-emerald">Step 3: Main Memory (RAM) Becomes the Active Working Desk</h4>
+              <p>Now the entire game code, 3D textures, and player variables are sitting directly inside RAM's 2D silicon matrix. The CPU can now read or write any random byte in just 10 to 20 nanoseconds!</p>
             </div>
           )}
           {activeStep === 4 && (
             <div>
-              <h4>Step 4: The CPU ALU Calculates at 5 Billion Times a Second!</h4>
-              <p>
-                Your game graphics render, calculations finish, and physics compute! 
-                If you suddenly pull the power cord, whatever unsaved work was sitting in RAM is lost, but the original saved files on the SSD remain safe.
-              </p>
+              <h4 className="text-purple">Step 4: The CPU ALU Crunches Instructions at Light Speed</h4>
+              <p>Because the instructions are in RAM (and cached in SRAM), the CPU core pipeline can execute billions of instructions per second without starving. When you close the app or turn off your PC, RAM clears itself for the next program.</p>
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* 3 Core Analogies Cards */}
-      <div className="analogies-grid">
-        <div className="analogy-card">
-          <div className="analogy-badge">
-            <span>ANALOGY 1</span>
+      {/* Speed Race Visualizer */}
+      <section className="workspace-card race-card">
+        <div className="card-header-bar">
+          <div>
+            <span className="card-kicker">ACCESS LATENCY COMPARISON</span>
+            <h3>The Hardware Speed Race: Why Storage Needs RAM</h3>
           </div>
-          <h3>The Chef's Kitchen</h3>
-          <div className="analogy-subitems">
-            <div className="subitem">
-              <strong>Cutting Board (RAM):</strong> Where the chef chops onions and prepares meals right now. Fast and easy to reach, but limited space.
-            </div>
-            <div className="subitem">
-              <strong>Pantry Shelf (SSD):</strong> Big boxes and ingredients stored in jars. Takes a minute to walk over, but holds weeks of groceries.
-            </div>
+          <div className="race-btn-group">
+            <button className="btn-bus-run" onClick={startRace} disabled={racing}>
+              <Play size={15} /> {racing ? 'Racing...' : 'Start Speed Race'}
+            </button>
+            <button className="btn-bus-reset" onClick={resetRace}>
+              <RotateCcw size={14} /> Reset
+            </button>
           </div>
         </div>
 
-        <div className="analogy-card">
-          <div className="analogy-badge">
-            <span>ANALOGY 2</span>
-          </div>
-          <h3>The Whiteboard vs Stone</h3>
-          <div className="analogy-subitems">
-            <div className="subitem">
-              <strong>RAM = Whiteboard:</strong> You write math equations with dry-erase markers. Quick to erase and change, but wipes clean at the end of the day.
-            </div>
-            <div className="subitem">
-              <strong>ROM = Carved Stone:</strong> The emergency exit sign carved in granite. You can't change it easily, but it stays forever without batteries.
-            </div>
-          </div>
+        <div className="race-lanes-list">
+          {SPEED_LEVELS.map((tier) => {
+            const progress = raceProgress[tier.name] ?? 0;
+            return (
+              <div key={tier.name} className="race-lane-row">
+                <div className="race-tier-info">
+                  <strong>{tier.name}</strong>
+                  <small>{tier.actual}</small>
+                </div>
+                <div className="race-track-slot">
+                  <div 
+                    className="race-runner-bar" 
+                    style={{ 
+                      width: `${progress}%`,
+                      backgroundColor: tier.color 
+                    }} 
+                  />
+                </div>
+                <div className="race-finish-badge">
+                  {progress === 100 ? (
+                    <span className="badge-finish">✓ Arrived ({tier.humanScale})</span>
+                  ) : (
+                    <span className="badge-waiting">{progress > 0 ? 'Travelling...' : 'Waiting'}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
+      </section>
 
-        <div className="analogy-card">
-          <div className="analogy-badge">
-            <span>ANALOGY 3</span>
+      {/* Searchable Glossary */}
+      <section className="workspace-card glossary-card">
+        <div className="card-header-bar">
+          <div>
+            <span className="card-kicker">REFERENCE ENCYCLOPEDIA</span>
+            <h3>Main Memory Jargon Buster</h3>
           </div>
-          <h3>Dual Channel = 2 Highway Lanes</h3>
-          <div className="analogy-subitems">
-            <div className="subitem">
-              <strong>Single Stick (Single Channel):</strong> One 64-bit road. If many cars (data packets) want to travel, traffic queues up.
-            </div>
-            <div className="subitem">
-              <strong>Two Sticks in Slots 2 & 4:</strong> Two parallel 64-bit roads (128-bit total). Data throughput literally doubles!
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive Glossary */}
-      <div className="glossary-section">
-        <div className="glossary-header">
-          <div className="glossary-title">
-            <BookOpen size={18} />
-            <span>Memory Architecture Glossary</span>
-          </div>
-          <div className="glossary-search">
+          <div className="glossary-search-box">
             <Search size={14} />
-            <input 
-              type="text" 
-              placeholder="Search any term (e.g. volatile, CL, SPD)..." 
+            <input
+              type="text"
+              placeholder="Search terms (e.g. RAS, CAS, Volatile, Refresh)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="glossary-grid">
-          {filteredGlossary.map((g) => (
-            <div key={g.term} className="glossary-card">
-              <strong>{g.term}</strong>
-              <p>{g.def}</p>
+        <div className="glossary-grid-clean">
+          {filteredGlossary.map((item) => (
+            <div key={item.term} className="glossary-term-card">
+              <strong className="term-name">{item.term}</strong>
+              <p className="term-def">{item.def}</p>
             </div>
           ))}
         </div>
-      </div>
+      </section>
+
+      {/* Module Bottom Navigation */}
+      <ModuleBottomNav currentTab="academy" setCurrentTab={onNavigateTab} />
     </div>
   );
 }

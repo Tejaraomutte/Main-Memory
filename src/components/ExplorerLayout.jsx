@@ -3,317 +3,210 @@ import {
   Cpu, 
   Zap, 
   ShieldCheck, 
-  History, 
   Layers, 
-  Network, 
-  Grid, 
-  BarChart3, 
-  Search, 
-  HelpCircle, 
-  Power,
-  RotateCcw,
-  Sparkles,
-  ExternalLink,
-  ChevronRight
+  Sparkles, 
+  Clock, 
+  Database, 
+  Info, 
+  ArrowRight,
+  Search,
+  CheckCircle2,
+  Activity
 } from 'lucide-react';
 import { MEMORY_COMPONENTS } from '../data/memoryData';
-import ThreeMemoryModel from './ThreeMemoryModel';
-import BusSimulator from './BusSimulator';
-import MemoryMatrix from './MemoryMatrix';
-import CellPhysics from './CellPhysics';
-
-const ICON_MAP = {
-  Cpu: Cpu,
-  Zap: Zap,
-  ShieldCheck: ShieldCheck,
-  History: History,
-  Layers: Layers,
-  Network: Network,
-  Grid: Grid,
-  BarChart3: BarChart3
-};
+import HardwareSchematic from './HardwareSchematic';
+import ModuleBottomNav from './ModuleBottomNav';
 
 export default function ExplorerLayout({ 
   selectedCompId, 
   setSelectedCompId, 
-  powerOn, 
-  setPowerOn,
-  onNavigateTab
+  onNavigateTab 
 }) {
-  const [libraryFilter, setLibraryFilter] = useState('all'); // 'all', 'volatile', 'non-volatile', 'system'
-  const [searchTerm, setSearchTerm] = useState('');
-  const [viewerMode, setViewerMode] = useState('3d'); // '3d', 'bus', 'matrix', 'cell'
-
   const activeComp = MEMORY_COMPONENTS.find(c => c.id === selectedCompId) || MEMORY_COMPONENTS[0];
 
-  const filteredComponents = MEMORY_COMPONENTS.filter(comp => {
-    const matchesSearch = comp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          comp.fullName.toLowerCase().includes(searchTerm.toLowerCase());
-    if (!matchesSearch) return false;
-
-    if (libraryFilter === 'volatile') {
-      return comp.badge.toLowerCase().includes('volatile') && !comp.badge.toLowerCase().includes('non-volatile');
-    }
-    if (libraryFilter === 'non-volatile') {
-      return comp.badge.toLowerCase().includes('non-volatile');
-    }
-    if (libraryFilter === 'system') {
-      return comp.id === 'buses' || comp.id === 'matrix' || comp.id === 'hierarchy';
-    }
-    return true;
-  });
-
   return (
-    <div className="explorer-layout">
-      {/* ========================================================== */}
-      {/* 1. LEFT PANEL: COMPONENT LIBRARY                           */}
-      {/* ========================================================== */}
-      <aside className="library-panel">
-        <div className="panel-heading">
-          <span className="panel-eyebrow">MEMORY ARCHITECTURES</span>
-          <span className="library-count-pill">{filteredComponents.length} TYPES</span>
+    <div className="page-shell">
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-eyebrow">
+          <Sparkles size={14} /> MODULE 01 • PRIMARY SILICON ARCHITECTURE
         </div>
+        <h1 className="hero-headline">Main Memory Explorer & <span>Silicon Family</span></h1>
+        <p className="hero-lead">
+          Main Memory is the CPU's primary workspace. Explore the physical anatomy of modern memory modules, 
+          from high-speed volatile DRAM sticks down to permanent firmware ROM chips.
+        </p>
 
-        {/* Quick Search */}
-        <div className="library-quick-search">
-          <Search size={14} className="library-search-icon" />
-          <input
-            type="text"
-            placeholder="Filter components..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        {/* Category Filter Chips */}
-        <div className="library-filter-chips">
+        {/* Quick Nav Pills */}
+        <div className="quick-nav-pills">
           <button 
-            className={`filter-chip ${libraryFilter === 'all' ? 'active-chip' : ''}`}
-            onClick={() => setLibraryFilter('all')}
+            className="quick-pill highlight"
+            onClick={() => onNavigateTab('matrix-lab')}
           >
-            All
+            <Zap size={14} /> 2D Memory Matrix Simulator →
           </button>
           <button 
-            className={`filter-chip ${libraryFilter === 'volatile' ? 'active-chip' : ''}`}
-            onClick={() => setLibraryFilter('volatile')}
+            className="quick-pill"
+            onClick={() => onNavigateTab('bus-lab')}
           >
-            Volatile
+            <Activity size={14} /> System Bus Lab →
           </button>
           <button 
-            className={`filter-chip ${libraryFilter === 'non-volatile' ? 'active-chip' : ''}`}
-            onClick={() => setLibraryFilter('non-volatile')}
+            className="quick-pill"
+            onClick={() => onNavigateTab('compare')}
           >
-            Non-Volatile
-          </button>
-          <button 
-            className={`filter-chip ${libraryFilter === 'system' ? 'active-chip' : ''}`}
-            onClick={() => setLibraryFilter('system')}
-          >
-            Bus & Logic
+            <ShieldCheck size={14} /> RAM vs ROM Showdown →
           </button>
         </div>
+      </section>
 
-        {/* Component List */}
-        <div className="component-list">
-          {filteredComponents.map((comp) => {
-            const Icon = ICON_MAP[comp.iconName] || Cpu;
+      {/* Component Selector Bar */}
+      <section className="module-selector-bar-section">
+        <span className="selector-bar-label">SELECT SILICON COMPONENT:</span>
+        <div className="component-chips-strip">
+          {MEMORY_COMPONENTS.map((comp) => {
             const isSelected = comp.id === activeComp.id;
             return (
               <button
                 key={comp.id}
-                className={`library-item ${isSelected ? 'selected' : ''}`}
-                onClick={() => {
-                  setSelectedCompId(comp.id);
-                  // Automatically choose best viewer mode for this component if relevant
-                  if (comp.id === 'buses') setViewerMode('bus');
-                  else if (comp.id === 'matrix') setViewerMode('matrix');
-                  else if (comp.id === 'dram' || comp.id === 'sram') setViewerMode('cell');
-                }}
+                className={`comp-selector-chip ${isSelected ? 'active' : ''}`}
+                style={isSelected ? { borderColor: comp.accentColor, color: comp.accentColor, backgroundColor: `${comp.accentColor}12` } : {}}
+                onClick={() => setSelectedCompId(comp.id)}
               >
-                <div 
-                  className="component-icon" 
-                  style={{ color: isSelected ? comp.accentColor : undefined }}
-                >
-                  <Icon size={19} />
-                </div>
-                <div className="component-text">
-                  <div className="item-title-row">
-                    <strong>{comp.name}</strong>
-                    <span className="item-category-tag">{comp.badge.split('•')[0].trim()}</span>
-                  </div>
-                  <small>{comp.fullName}</small>
-                </div>
-                {isSelected && <span className="selected-dot">●</span>}
+                <span className="chip-badge">{comp.badge.split('•')[0].trim()}</span>
+                <strong>{comp.name}</strong>
               </button>
             );
           })}
         </div>
-
-        {/* Bottom Quick Jump Action */}
-        <div className="library-footer-card">
-          <span className="footer-card-hint">Ready for a challenge?</span>
-          <button className="view-all-button" onClick={() => onNavigateTab('quiz')}>
-            <span>Test Your Knowledge in Quiz</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      </aside>
-
-      {/* ========================================================== */}
-      {/* 2. CENTER PANEL: INTERACTIVE VISUALIZER CANVAS             */}
-      {/* ========================================================== */}
-      <section className="viewer-panel">
-        {/* Mode Switcher Pill Bar */}
-        <div className="viewer-mode-switch">
-          <button 
-            className={viewerMode === '3d' ? 'active' : ''}
-            onClick={() => setViewerMode('3d')}
-          >
-            3D DIMM Inspector
-          </button>
-          <button 
-            className={viewerMode === 'bus' ? 'active' : ''}
-            onClick={() => setViewerMode('bus')}
-          >
-            Bus Simulator
-          </button>
-          <button 
-            className={viewerMode === 'matrix' ? 'active' : ''}
-            onClick={() => setViewerMode('matrix')}
-          >
-            2D Memory Matrix
-          </button>
-          <button 
-            className={viewerMode === 'cell' ? 'active' : ''}
-            onClick={() => setViewerMode('cell')}
-          >
-            1-Bit Silicon Cell
-          </button>
-        </div>
-
-        {/* Dynamic Canvas Container depending on viewerMode */}
-        <div className="viewer-canvas-outlet">
-          {viewerMode === '3d' && (
-            <ThreeMemoryModel powerOn={powerOn} />
-          )}
-
-          {viewerMode === 'bus' && (
-            <div className="embedded-view-container">
-              <BusSimulator powerOn={powerOn} />
-            </div>
-          )}
-
-          {viewerMode === 'matrix' && (
-            <div className="embedded-view-container">
-              <MemoryMatrix powerOn={powerOn} />
-            </div>
-          )}
-
-          {viewerMode === 'cell' && (
-            <div className="embedded-view-container">
-              <CellPhysics powerOn={powerOn} />
-            </div>
-          )}
-        </div>
       </section>
 
-      {/* ========================================================== */}
-      {/* 3. RIGHT PANEL: DEEP-DIVE STUDIO & BEGINNER GUIDE          */}
-      {/* ========================================================== */}
-      <aside className="info-panel">
-        <span className="info-category">{activeComp.category}</span>
-        <h1>{activeComp.name}</h1>
-        <div className="tagline">{activeComp.fullName}</div>
-        <p className="description">{activeComp.tagline}</p>
-
-        {/* Explain Like I'm 5 Analogy Card */}
-        <div className="importance-card">
-          <div className="analogy-head-row">
-            <span className="analogy-emoji">{activeComp.analogy.icon}</span>
+      {/* Main 2-Column Interactive Workspace */}
+      <section className="clean-workspace-grid">
+        {/* Left: Hardware Schematic Stage */}
+        <div className="workspace-card dimm-stage-card">
+          <div className="card-header-bar">
             <div>
-              <strong>BEGINNER ANALOGY: {activeComp.analogy.title}</strong>
+              <span className="card-kicker">PHYSICAL HARDWARE ANATOMY</span>
+              <h3>{activeComp.id === 'dram' ? 'DDR5 Memory Module Anatomy' : `${activeComp.name} Silicon Architecture`}</h3>
+            </div>
+            <span className="card-hint-badge">
+              <CheckCircle2 size={13} /> 2D Vector Schematic
+            </span>
+          </div>
+
+          <HardwareSchematic activeComp={activeComp} />
+        </div>
+
+        {/* Right: Component Inspector Details */}
+        <div className="workspace-card component-inspector-card" style={{ borderTop: `4px solid ${activeComp.accentColor}` }}>
+          <div className="card-header-bar">
+            <div>
+              <span className="card-kicker" style={{ color: activeComp.accentColor }}>{activeComp.category}</span>
+              <h2 className="comp-full-title">{activeComp.fullName} ({activeComp.name})</h2>
+            </div>
+            <span className="comp-tag-badge" style={{ backgroundColor: `${activeComp.accentColor}18`, color: activeComp.accentColor }}>
+              {activeComp.badge}
+            </span>
+          </div>
+
+          <p className="comp-tagline-text">{activeComp.tagline}</p>
+
+          {/* Analogy Box */}
+          <div className="clean-analogy-box">
+            <div className="analogy-icon-wrap">{activeComp.analogy.icon}</div>
+            <div>
+              <strong>Beginner Analogy: {activeComp.analogy.title}</strong>
               <p>{activeComp.analogy.summary}</p>
             </div>
           </div>
-        </div>
 
-        {/* Volatile vs Non-Volatile Status Banner */}
-        <div className={`volatility-status-banner ${activeComp.badge.includes('Non-Volatile') ? 'nv-banner' : 'v-banner'}`}>
-          <div className="banner-text">
-            <strong>{activeComp.badge}</strong>
-            <small>
-              {activeComp.badge.includes('Non-Volatile')
-                ? 'Safe: Retains data even if electricity is completely unplugged.'
-                : 'Volatile: Loses all contents the moment power turns off!'}
-            </small>
-          </div>
-          <button 
-            className="mini-power-test-btn"
-            onClick={() => setPowerOn(!powerOn)}
-            title="Toggle power to test retention"
-          >
-            <Power size={13} />
-            <span>{powerOn ? 'Test Power Cut' : 'Restore Power'}</span>
-          </button>
-        </div>
-
-        <div className="separator" />
-
-        {/* Architecture Specs Table */}
-        <div className="facts-title">ARCHITECTURAL SPECIFICATIONS</div>
-        <div className="facts-grid-atelier">
-          {activeComp.specs.map((s, idx) => (
-            <div key={idx} className={`fact-row ${s.highlight ? 'fact-highlight' : ''}`}>
-              <span>{s.label}</span>
-              <strong>{s.value}</strong>
-            </div>
-          ))}
-        </div>
-
-        <div className="separator" />
-
-        {/* Step-by-Step How it works */}
-        <div className="facts-title">HOW IT WORKS IN 3 STEPS</div>
-        <div className="steps-atelier-list">
-          {activeComp.howItWorks.map((step) => (
-            <div key={step.step} className="step-atelier-item">
-              <span className="step-num-bubble">{step.step}</span>
-              <div className="step-body">
-                <strong>{step.title}</strong>
-                <p>{step.desc}</p>
+          {/* Specs Grid */}
+          <div className="clean-specs-grid">
+            {activeComp.specs.map((spec, sIdx) => (
+              <div key={sIdx} className="clean-spec-card">
+                <span className="spec-card-lbl">{spec.label}</span>
+                <strong className="spec-card-val" style={spec.highlight ? { color: activeComp.accentColor } : {}}>
+                  {spec.value}
+                </strong>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Deep Dive Note */}
+          <div className="clean-deep-dive-box">
+            <strong>Micro-Architectural Function:</strong>
+            <p>{activeComp.deepDive}</p>
+          </div>
+
+          {/* Real World Impact */}
+          <div className="clean-real-world-box">
+            <strong>Real-World Application:</strong>
+            <p>{activeComp.realWorld}</p>
+          </div>
+
+          {/* Action Row */}
+          <div className="inspector-action-buttons">
+            <button 
+              className="btn-deep-action"
+              style={{ backgroundColor: activeComp.accentColor, color: '#ffffff' }}
+              onClick={() => {
+                if (activeComp.id === 'dram' || activeComp.id === 'sram') onNavigateTab('cell-lab');
+                else onNavigateTab('compare');
+              }}
+            >
+              <span>Explore {activeComp.name} Physics & Architecture</span>
+              <ArrowRight size={15} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 3 Foundational Pillars of Main Memory */}
+      <section className="foundations-section">
+        <div className="section-header">
+          <div>
+            <span className="section-label">CORE PRINCIPLES</span>
+            <h2>The 3 Iron Rules of Main Memory</h2>
+          </div>
+          <p>Why modern computers are engineered around distinct primary storage technologies.</p>
         </div>
 
-        <div className="separator" />
+        <div className="laws-grid">
+          <div className="law-card">
+            <span className="law-badge">RULE 01</span>
+            <h3>The Speed-Density Tradeoff</h3>
+            <p className="law-implication">
+              SRAM is 50x faster than DRAM because its 6-transistor bistable latch requires no recharging. 
+              However, 6 transistors consume 6x more silicon area per bit, making full-system SRAM economically impossible. 
+              DRAM solves this by packing 1 bit into a single microscopic capacitor (1T1C).
+            </p>
+          </div>
 
-        {/* Real-World Context */}
-        <div className="facts-title">INSIDE YOUR PHONE & PC</div>
-        <div className="real-world-box">
-          <p>{activeComp.realWorld}</p>
+          <div className="law-card">
+            <span className="law-badge">RULE 02</span>
+            <h3>Volatility & Charge Refresh</h3>
+            <p className="law-implication">
+              DRAM stores bits as tiny pools of electrons (0.03 picofarads). Because silicon naturally leaks electrons, 
+              the charge drains within milliseconds. The memory controller must periodically execute <strong>Auto-Refresh (t<sub>RFC</sub>)</strong> 
+              every 64ms, reading and rewriting every single row before data corrupts.
+            </p>
+          </div>
+
+          <div className="law-card">
+            <span className="law-badge">RULE 03</span>
+            <h3>Firmware Bootstrapping (ROM)</h3>
+            <p className="law-implication">
+              When a computer boots up, DRAM is completely empty (all capacitors uncharged). 
+              The CPU requires permanent, non-volatile ROM containing the BIOS/UEFI firmware to initialize 
+              hardware registers, train memory timings, and load the operating system kernel into RAM.
+            </p>
+          </div>
         </div>
+      </section>
 
-        {/* Jump-to-Lab Actions */}
-        <div className="action-grid">
-          <button onClick={() => setViewerMode('bus')}>
-            <Network size={14} />
-            <span>Bus Simulation</span>
-          </button>
-          <button onClick={() => setViewerMode('matrix')}>
-            <Grid size={14} />
-            <span>Matrix Addressing</span>
-          </button>
-        </div>
-
-        <button 
-          className="lesson-button"
-          onClick={() => onNavigateTab('speed-race')}
-        >
-          <span>Explore Memory Hierarchy Speed Race</span>
-          <ChevronRight size={16} />
-        </button>
-      </aside>
+      {/* Module Bottom Navigation */}
+      <ModuleBottomNav currentTab="explorer" setCurrentTab={onNavigateTab} />
     </div>
   );
 }

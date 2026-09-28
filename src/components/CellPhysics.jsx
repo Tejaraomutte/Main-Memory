@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { BatteryCharging, Zap, RefreshCw, AlertTriangle, ShieldCheck, ToggleLeft, ToggleRight } from 'lucide-react';
+import { BatteryCharging, Zap, RefreshCw, AlertTriangle, ShieldCheck, Cpu, Sparkles } from 'lucide-react';
+import ModuleBottomNav from './ModuleBottomNav';
 
-export default function CellPhysics({ powerOn }) {
+export default function CellPhysics({ onNavigateTab }) {
   // DRAM State
   const [dramCharge, setDramCharge] = useState(100);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -9,17 +10,10 @@ export default function CellPhysics({ powerOn }) {
   const [refreshCount, setRefreshCount] = useState(0);
 
   // SRAM State
-  const [sramQ, setSramQ] = useState(1); // 1 or 0
+  const [sramQ, setSramQ] = useState(1);
 
-  // DRAM Discharge simulation effect
+  // DRAM Natural Discharge simulation
   useEffect(() => {
-    if (!powerOn) {
-      setDramCharge(0);
-      setDramBit(0);
-      setSramQ(0);
-      return;
-    }
-
     const interval = setInterval(() => {
       setDramCharge((prev) => {
         if (prev <= 5) {
@@ -28,18 +22,18 @@ export default function CellPhysics({ powerOn }) {
         }
         const nextCharge = prev - 4;
         if (nextCharge < 40) {
-          setDramBit(0); // Bit flips due to loss of charge
+          setDramBit(0); // Bit corruption due to capacitor discharge
         }
         return nextCharge;
       });
     }, 180);
 
     return () => clearInterval(interval);
-  }, [powerOn]);
+  }, []);
 
   // Auto Refresh cycle effect for DRAM
   useEffect(() => {
-    if (!powerOn || !autoRefresh) return;
+    if (!autoRefresh) return;
 
     const refreshInterval = setInterval(() => {
       setDramCharge((prev) => {
@@ -53,177 +47,165 @@ export default function CellPhysics({ powerOn }) {
     }, 1200);
 
     return () => clearInterval(refreshInterval);
-  }, [powerOn, autoRefresh]);
+  }, [autoRefresh]);
 
   const handleManualRefresh = () => {
-    if (!powerOn) return;
     setDramCharge(100);
     setDramBit(1);
     setRefreshCount((c) => c + 1);
   };
 
-  const handleWriteDram = (newBit) => {
-    if (!powerOn) return;
-    setDramBit(newBit);
-    setDramCharge(newBit === 1 ? 100 : 0);
-  };
-
   const handleToggleSram = () => {
-    if (!powerOn) return;
     setSramQ((prev) => (prev === 1 ? 0 : 1));
   };
 
   return (
-    <div className="cell-physics-wrapper">
-      <div className="cell-header-bar">
-        <div>
-          <span className="panel-kicker">MICROSCOPIC SILICON COMPARISON</span>
-          <h3>1-Bit DRAM Cell vs 1-Bit SRAM Cell</h3>
-          <p className="cell-subtitle">
-            See why DRAM needs constant electrical refreshing (Dynamic), while SRAM stays locked in place forever (Static).
-          </p>
+    <div className="page-shell">
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-eyebrow">
+          <Zap size={14} /> MODULE 04 • MICROSCOPIC SILICON CELL PHYSICS
         </div>
-      </div>
+        <h1 className="hero-headline">1-Bit DRAM Cell vs <span>1-Bit SRAM Cell</span></h1>
+        <p className="hero-lead">
+          Explore why DRAM is called <strong>Dynamic</strong> (requires continuous electrical refreshing), 
+          while SRAM is called <strong>Static</strong> (holds data indefinitely without leaking).
+        </p>
+      </section>
 
-      <div className="cells-split-stage">
-        {/* DRAM 1T-1C Interactive Box */}
-        <div className="cell-card dram-physics-card">
-          <div className="card-top-tag">
-            <span className="cell-type-badge dram-badge">DRAM: 1 Transistor + 1 Capacitor (1T-1C)</span>
-            <span className="silicon-density">Extremely High Density (Billions / chip)</span>
+      {/* 2-Column Split Stage */}
+      <section className="clean-workspace-grid">
+        {/* Left: DRAM 1T-1C Box */}
+        <div className="workspace-card cell-card-clean dram-card">
+          <div className="card-header-bar">
+            <div>
+              <span className="card-kicker" style={{ color: '#0284c7' }}>DYNAMIC RAM CELL (1T-1C)</span>
+              <h3>1 Transistor + 1 Trench Capacitor</h3>
+            </div>
+            <span className="cell-badge-pill dram">High Density • Leaky</span>
           </div>
 
-          <h4>Dynamic RAM (Main Memory)</h4>
-          <p className="cell-lead">
-            Stores each bit as electrical charge inside a microscopic trench capacitor. 
-            Because charge leaks away like water from a tiny hole, it must be continuously refreshed.
+          <p className="cell-intro-text">
+            Stores each bit as an electrical charge in a microscopic capacitor. Because silicon naturally leaks electrons, 
+            the voltage drains away like water from a punctured bucket.
           </p>
 
-          {/* Interactive Capacitor Gauge */}
-          <div className="capacitor-visualizer">
-            <div className="gauge-label-row">
-              <span>Capacitor Charge Level:</span>
-              <strong style={{ color: dramCharge > 45 ? '#059669' : '#e11d48' }}>
-                {dramCharge}% {dramCharge < 40 && '(Corrupting!)'}
-              </strong>
-            </div>
-
-            <div className="charge-bar-track">
+          {/* Interactive Capacitor Tank */}
+          <div className="capacitor-visual-tank">
+            <div className="tank-shell">
               <div 
-                className={`charge-bar-fill ${dramCharge < 40 ? 'danger-fill' : ''}`}
-                style={{ width: `${dramCharge}%` }}
+                className="tank-fluid" 
+                style={{ 
+                  height: `${dramCharge}%`,
+                  backgroundColor: dramCharge > 50 ? '#0284c7' : (dramCharge > 20 ? '#d97706' : '#e11d48')
+                }} 
               />
-              <div className="charge-threshold-line" title="40% Voltage Threshold" />
             </div>
 
-            <div className="bit-detected-row">
-              <span>Sense Amp Reads:</span>
-              <span className={`bit-pill ${dramBit === 1 ? 'bit-one' : 'bit-zero'}`}>
-                Bit: {dramBit}
-              </span>
+            <div className="tank-metrics">
+              <div className="metric-line">
+                <span>Capacitor Voltage:</span>
+                <strong className="metric-val mono">{((dramCharge / 100) * 1.2).toFixed(2)} Volts</strong>
+              </div>
+              <div className="metric-line">
+                <span>Stored Bit Value:</span>
+                <strong className={`metric-bit ${dramBit === 1 ? 'one' : 'zero'}`}>
+                  Bit {dramBit}
+                </strong>
+              </div>
+              <div className="metric-line">
+                <span>Auto-Refresh Pulses:</span>
+                <strong className="metric-val mono">{refreshCount} cycles executed</strong>
+              </div>
             </div>
           </div>
 
-          {/* Controls for DRAM */}
-          <div className="cell-action-bar">
-            <button 
-              className="atelier-primary-btn" 
-              onClick={handleManualRefresh}
-              disabled={!powerOn}
-            >
-              <RefreshCw size={14} />
-              <span>Manual Refresh Pulse</span>
-            </button>
+          {/* Refresh Controls */}
+          <div className="cell-controls-box">
+            <div className="toggle-row">
+              <label className="toggle-switch-lbl">
+                <input 
+                  type="checkbox" 
+                  checked={autoRefresh} 
+                  onChange={(e) => setAutoRefresh(e.target.checked)} 
+                />
+                <span className="toggle-slider" />
+                <strong>Auto-Refresh Circuit (t<sub>RFC</sub> Controller): {autoRefresh ? 'ENABLED' : 'DISABLED'}</strong>
+              </label>
+            </div>
 
-            <button 
-              className={`atelier-secondary-btn ${autoRefresh ? 'active-mode' : ''}`}
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              disabled={!powerOn}
-            >
-              <span>Auto-Refresh: {autoRefresh ? 'ENABLED (every 64ms)' : 'DISABLED (Watch it leak!)'}</span>
+            {!autoRefresh && (
+              <div className="leakage-warning-box">
+                <AlertTriangle size={16} />
+                <span>Auto-refresh disabled! Watch the charge leak until the bit flips to 0.</span>
+              </div>
+            )}
+
+            <button className="btn-cell-action dram-recharge" onClick={handleManualRefresh}>
+              <RefreshCw size={14} /> Manually Recharge Capacitor to 100%
             </button>
           </div>
 
-          <div className="write-bit-options">
-            <span>Force Store:</span>
-            <button className="pill-btn" onClick={() => handleWriteDram(1)}>Write Bit 1 (Charge)</button>
-            <button className="pill-btn" onClick={() => handleWriteDram(0)}>Write Bit 0 (Discharge)</button>
-            <small>Refreshes executed: {refreshCount}</small>
-          </div>
-
-          <div className="analogy-footer-note">
-            <strong>💡 Leaky Bucket Analogy:</strong> DRAM is like a bucket with a pinhole. To keep the water level full, a garden hose must top it up hundreds of times a second.
+          <div className="cell-verdict-note">
+            <strong>Key Architectural Takeaway:</strong>
+            <p>1T1C cells take up 6x less silicon than SRAM, enabling 32GB+ capacities at low cost, but require continuous background refreshing.</p>
           </div>
         </div>
 
-        {/* SRAM 6T Bistable Latch Interactive Box */}
-        <div className="cell-card sram-physics-card">
-          <div className="card-top-tag">
-            <span className="cell-type-badge sram-badge">SRAM: 6 Transistors (6T Latch)</span>
-            <span className="silicon-density">Lower Density • Extremely Expensive</span>
+        {/* Right: SRAM 6T Box */}
+        <div className="workspace-card cell-card-clean sram-card">
+          <div className="card-header-bar">
+            <div>
+              <span className="card-kicker" style={{ color: '#7c3aed' }}>STATIC RAM CELL (6T-SRAM)</span>
+              <h3>6-Transistor Bistable Flip-Flop</h3>
+            </div>
+            <span className="cell-badge-pill sram">Zero Leakage • Instant</span>
           </div>
 
-          <h4>Static RAM (CPU L1/L2/L3 Cache)</h4>
-          <p className="cell-lead">
-            Uses two cross-coupled CMOS inverters forming a bistable flip-flop. 
-            As long as electrical power is provided, the bit never degrades and never requires refreshing.
+          <p className="cell-intro-text">
+            Stores each bit using two cross-coupled CMOS inverters. The state locks indefinitely through positive feedback. 
+            No capacitors, zero leakage, and zero refreshing required.
           </p>
 
-          {/* Inverter Latch Schematic Visual */}
-          <div className="sram-latch-stage">
-            <div className="inverter-pair">
-              <div className={`latch-node ${sramQ === 1 ? 'node-high' : 'node-low'}`}>
-                <span className="node-title">Node Q</span>
-                <span className="node-val">{sramQ}</span>
-                <small>{sramQ === 1 ? 'HIGH (1.1V)' : 'LOW (0.0V)'}</small>
-              </div>
-
-              <div className="latch-cross-arrows">
-                <span>⇄</span>
-                <small>Cross-Coupled Feedback</small>
-              </div>
-
-              <div className={`latch-node ${sramQ === 0 ? 'node-high' : 'node-low'}`}>
-                <span className="node-title">Node Q (Inverse)</span>
-                <span className="node-val">{sramQ === 1 ? 0 : 1}</span>
-                <small>{sramQ === 1 ? 'LOW (0.0V)' : 'HIGH (1.1V)'}</small>
-              </div>
+          {/* Bistable Latch Graphic */}
+          <div className="sram-latch-visual">
+            <div className="latch-state-circle">
+              <span className="latch-big-bit">{sramQ}</span>
+              <span className="latch-sub-label">Locked State (Q = {sramQ}, Q̄ = {sramQ === 1 ? 0 : 1})</span>
             </div>
 
-            <div className="sram-speed-stat">
-              <Zap size={14} className="zap-icon" />
-              <span>Response Time: <strong>~0.8 nanoseconds (Zero Refresh Latency)</strong></span>
+            <div className="latch-specs-list">
+              <div className="spec-line">
+                <span>Access Latency:</span>
+                <strong className="mono">0.5 – 1.0 ns (Instantaneous)</strong>
+              </div>
+              <div className="spec-line">
+                <span>Transistor Count:</span>
+                <strong className="mono">6 Transistors per bit</strong>
+              </div>
+              <div className="spec-line">
+                <span>Refresh Required:</span>
+                <strong className="mono text-emerald">NO (Static hold)</strong>
+              </div>
             </div>
           </div>
 
-          {/* Controls for SRAM */}
-          <div className="cell-action-bar">
-            <button 
-              className="atelier-primary-btn sram-btn" 
-              onClick={handleToggleSram}
-              disabled={!powerOn}
-            >
-              <Zap size={14} />
-              <span>Flip Latch State (Now {sramQ} → {sramQ === 1 ? 0 : 1})</span>
+          {/* SRAM Controls */}
+          <div className="cell-controls-box">
+            <button className="btn-cell-action sram-toggle" onClick={handleToggleSram}>
+              <Zap size={14} /> Flip Latch State (Now {sramQ} → Change to {sramQ === 1 ? 0 : 1})
             </button>
           </div>
 
-          <div className="sram-traits-list">
-            <div className="trait-item">
-              <ShieldCheck size={14} className="check-icon" />
-              <span>No Refresh Pauses — Reads and writes at CPU clock speeds</span>
-            </div>
-            <div className="trait-item">
-              <AlertTriangle size={14} className="warn-icon" />
-              <span>6 Transistors take 6x more silicon area than DRAM</span>
-            </div>
-          </div>
-
-          <div className="analogy-footer-note">
-            <strong>💡 Light Switch Analogy:</strong> SRAM is like a mechanical toggle switch on your wall. Once flipped up, it stays up indefinitely without anyone having to touch it again!
+          <div className="cell-verdict-note sram-note">
+            <strong>Key Architectural Takeaway:</strong>
+            <p>SRAM is 50x faster than DRAM because it never has to wait for capacitor recharge cycles. However, 6 transistors per bit make it too expensive for multi-gigabyte main memory.</p>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Module Bottom Navigation */}
+      <ModuleBottomNav currentTab="cell-lab" setCurrentTab={onNavigateTab} />
     </div>
   );
 }

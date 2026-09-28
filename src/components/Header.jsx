@@ -1,183 +1,137 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   MemoryStick, 
-  Search, 
-  Power, 
-  Sparkles, 
-  ChevronRight, 
-  X, 
-  BookOpen, 
   Layers, 
-  Cpu, 
+  Grid3X3, 
+  Activity, 
   Zap, 
+  ShieldCheck, 
+  BookOpen, 
   HelpCircle,
-  Activity,
-  ShieldCheck
+  Menu,
+  X,
+  Sparkles
 } from 'lucide-react';
-import { MEMORY_COMPONENTS, GLOSSARY_TERMS } from '../data/memoryData';
 
-export default function Header({ 
-  currentTab, 
-  setCurrentTab, 
-  powerOn, 
-  setPowerOn, 
-  onSelectComponent 
-}) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const searchRef = useRef(null);
+export const MAIN_MEMORY_MODULES = [
+  { id: 'explorer', num: '01', name: 'Explorer', title: '3D Chip Explorer & Silicon Family', pill: '3D Silicon Explorer' },
+  { id: 'matrix-lab', num: '02', name: 'Matrix', title: '2D Wordlines, Bitlines & Decoders', pill: '2D Silicon Matrix' },
+  { id: 'bus-lab', num: '03', name: 'Bus Lab', title: 'Address, Data & Control Bus Signals', pill: 'System Bus Lab' },
+  { id: 'cell-lab', num: '04', name: 'Physics', title: '1T1C DRAM Leakage vs 6T SRAM', pill: 'Silicon Cell Physics' },
+  { id: 'compare', num: '05', name: 'RAM vs ROM', title: 'Showdown & EPROM UV Eraser', pill: 'RAM vs ROM Evolution' },
+  { id: 'academy', num: '06', name: 'Academy', title: 'App Launch Pipeline & Speed Race', pill: 'Beginner Academy' },
+  { id: 'quiz', num: '07', name: 'Quiz', title: 'Main Memory Mastery Challenge', pill: 'Mastery Quiz' }
+];
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setIsSearchOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+const ICON_MAP = {
+  '01': Layers,
+  '02': Grid3X3,
+  '03': Activity,
+  '04': Zap,
+  '05': ShieldCheck,
+  '06': BookOpen,
+  '07': HelpCircle
+};
 
-  const filteredComponents = searchQuery.trim() === '' ? [] : MEMORY_COMPONENTS.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.tagline.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.deepDive.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+export default function Header({ currentTab, setCurrentTab }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const filteredGlossary = searchQuery.trim() === '' ? [] : GLOSSARY_TERMS.filter(g =>
-    g.term.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    g.def.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const navItems = [
-    { id: 'explorer', label: 'Explorer', icon: Layers },
-    { id: 'bus-lab', label: 'Bus Lab', icon: Activity },
-    { id: 'matrix-lab', label: 'Memory Matrix', icon: Cpu },
-    { id: 'cell-lab', label: 'Silicon Cell', icon: Zap },
-    { id: 'compare', label: 'RAM vs ROM', icon: ShieldCheck },
-    { id: 'speed-race', label: 'Speed', icon: Sparkles },
-    { id: 'academy', label: 'Academy', icon: BookOpen },
-    { id: 'quiz', label: 'Quiz', icon: HelpCircle }
-  ];
+  const currentIdx = MAIN_MEMORY_MODULES.findIndex(m => m.id === currentTab);
+  const activeModule = MAIN_MEMORY_MODULES[currentIdx] || MAIN_MEMORY_MODULES[0];
+  const progressPercent = ((currentIdx + 1) / MAIN_MEMORY_MODULES.length) * 100;
 
   return (
-    <header className="header">
-      <div className="brand-wrap" onClick={() => setCurrentTab('explorer')}>
-        <div className="atelier-logo-icon">
-          <MemoryStick size={22} />
-        </div>
-        <div className="brand-text">
-          <span className="logo-main">Main Memory <span>Atelier</span></span>
-          <small className="logo-sub">Computer Architecture Visualizer</small>
-        </div>
-      </div>
-
-      <nav className="main-nav">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentTab === item.id;
-          return (
-            <button
-              key={item.id}
-              className={`nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setCurrentTab(item.id)}
-            >
-              <Icon size={15} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="header-search-wrapper" ref={searchRef}>
-        <div className="header-search">
-          <Search size={16} className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search memory, SRAM, bus, refresh..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setIsSearchOpen(true);
-            }}
-            onFocus={() => setIsSearchOpen(true)}
-          />
-          {searchQuery && (
-            <button 
-              className="search-clear-btn" 
-              onClick={() => { setSearchQuery(''); setIsSearchOpen(false); }}
-              aria-label="Clear search"
-            >
-              <X size={13} />
-            </button>
-          )}
-        </div>
-
-        {isSearchOpen && (filteredComponents.length > 0 || filteredGlossary.length > 0) && (
-          <div className="search-dropdown-menu">
-            {filteredComponents.length > 0 && (
-              <div className="search-results-section">
-                <span className="search-section-label">Memory Architectures</span>
-                {filteredComponents.map((comp) => (
-                  <button
-                    key={comp.id}
-                    className="search-result-item"
-                    onClick={() => {
-                      onSelectComponent(comp.id);
-                      setCurrentTab('explorer');
-                      setIsSearchOpen(false);
-                      setSearchQuery('');
-                    }}
-                  >
-                    <div className="result-icon">
-                      <Cpu size={16} />
-                    </div>
-                    <div className="result-details">
-                      <span className="result-title">{comp.name} — {comp.fullName}</span>
-                      <span className="result-desc">{comp.tagline}</span>
-                    </div>
-                    <ChevronRight size={14} className="result-arrow" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {filteredGlossary.length > 0 && (
-              <div className="search-results-section">
-                <span className="search-section-label">Glossary & Concepts</span>
-                {filteredGlossary.map((item) => (
-                  <div key={item.term} className="search-result-item" style={{ cursor: 'default' }}>
-                    <div className="result-icon lesson-icon">
-                      <BookOpen size={16} />
-                    </div>
-                    <div className="result-details">
-                      <span className="result-title">{item.term}</span>
-                      <span className="result-desc">{item.def}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+    <header className="global-navbar">
+      <div className="nav-container">
+        {/* Brand */}
+        <div className="brand-group" onClick={() => setCurrentTab('explorer')} style={{ cursor: 'pointer' }}>
+          <div className="brand-mark">
+            <MemoryStick size={20} />
           </div>
-        )}
-      </div>
-
-      <div className="header-actions">
-        <button 
-          className={`power-toggle-btn ${powerOn ? 'power-active' : 'power-off'}`}
-          onClick={() => setPowerOn(!powerOn)}
-          title={powerOn ? 'Click to cut power (Demonstrates volatile memory loss)' : 'Click to restore system power'}
-        >
-          <Power size={15} />
-          <span>{powerOn ? 'POWER: ON' : 'POWER: OFF'}</span>
-          <span className={`power-dot ${powerOn ? 'pulse' : 'dead'}`} />
-        </button>
-
-        <div className="atelier-pill-badge">
-          <span className="badge-light-indicator" />
-          <span>LIGHT MODE</span>
+          <div className="brand-text">
+            <span className="brand-title">Main Memory <b>Atelier</b></span>
+            <span className="brand-subtitle">Interactive Computer Architecture Studio</span>
+          </div>
         </div>
+
+        {/* Current Active Module Pill */}
+        <div className="chapter-pill-badge">
+          <span className="live-dot" />
+          <span className="pill-chapter">MOD {activeModule.num}:</span>
+          <span className="pill-name">{activeModule.pill}</span>
+        </div>
+
+        {/* Desktop Nav Items */}
+        <nav className="desktop-nav">
+          {MAIN_MEMORY_MODULES.map((mod) => {
+            const Icon = ICON_MAP[mod.num] || Layers;
+            const isActive = currentTab === mod.id;
+            return (
+              <button
+                key={mod.id}
+                className={`nav-item ${isActive ? 'active' : ''}`}
+                title={mod.title}
+                onClick={() => setCurrentTab(mod.id)}
+              >
+                <span className="nav-item-num">{mod.num}</span>
+                <Icon size={14} className="nav-item-icon" />
+                <span className="nav-item-text">{mod.name}</span>
+                {isActive && <span className="active-glow-indicator" />}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Mobile Menu Button */}
+        <button 
+          className="mobile-menu-btn"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle Navigation"
+        >
+          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
+
+      {/* Progress Line */}
+      <div className="navbar-progress-track">
+        <div className="navbar-progress-fill" style={{ width: `${progressPercent}%` }} />
+      </div>
+
+      {/* Mobile Drawer */}
+      {mobileOpen && (
+        <div className="mobile-drawer">
+          <div className="mobile-drawer-header">
+            <div className="drawer-title">
+              <Sparkles size={14} />
+              <span>MAIN MEMORY MODULES</span>
+            </div>
+            <span>Module {currentIdx + 1} of {MAIN_MEMORY_MODULES.length}</span>
+          </div>
+          <div className="mobile-drawer-list">
+            {MAIN_MEMORY_MODULES.map((mod) => {
+              const Icon = ICON_MAP[mod.num] || Layers;
+              const isActive = currentTab === mod.id;
+              return (
+                <button
+                  key={mod.id}
+                  className={`mobile-drawer-item ${isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab(mod.id);
+                    setMobileOpen(false);
+                  }}
+                >
+                  <div className="mobile-drawer-item-left">
+                    <span className="drawer-num">{mod.num}</span>
+                    <Icon size={16} />
+                    <span>{mod.pill}</span>
+                  </div>
+                  {isActive && <span className="drawer-active-dot">●</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
